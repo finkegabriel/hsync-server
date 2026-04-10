@@ -1,30 +1,97 @@
-const net = require('net');
-const b64id = require('b64id');
-const debug = require('debug')('hsync:info');
-const debugError = require('debug')('error');
+import net from 'net';
+import http from 'http';
+import b64id from 'b64id';
+import createDebug from 'debug';
 
-// const { parseReqHeaders } = require('./lib/http-parse');
-const { createParser } = require('./lib/simple-parse');
-const sockets = require('./lib/socket-map');
-const { forwardWebRequest, sendCloseRequest } = require('./aedes');
-const startHapi = require('./hapi');
-const defaultConfig = require('./config');
+import { createParser } from './lib/simple-parse.js';
+import sockets from './lib/socket-map.js';
+import { forwardWebRequest, sendCloseRequest } from './aedes.js';
+import startFastify from './fastify.js';
+import defaultConfig from './config.js';
+
+const debug = createDebug('hsync:info');
+const debugError = createDebug('error');
 
 async function run(conf = {}) {
   const config = { ...defaultConfig, ...conf };
   const HSYNC_CONNECT_PATH = `/${config.hsyncBase}`;
-  let handleLocalHttpRequest;
+
+  const { fastify, wss } = await startFastify(config);
+
+  // Handle HTTP requests to /_hs/* via fastify.inject() — no TCP loopback
+  async function handleLocalHttpRequest(socket, data, parsed) {
+    try {
+      // Extract body from raw data (everything after \r\n\r\n)
+      const headerEnd = data.indexOf('\r\n\r\n');
+      const body = headerEnd >= 0 ? data.slice(headerEnd + 4) : undefined;
+
+      const response = await fastify.inject({
+        method: parsed.method,
+        url: parsed.url,
+        headers: parsed.headers,
+        payload: body?.length ? body : undefined,
+      });
+
+      // Write raw HTTP response to external socket
+      const statusMessage = response.statusMessage || 'OK';
+      socket.write(`HTTP/1.1 ${response.statusCode} ${statusMessage}\r\n`);
+      const headers = response.headers;
+      for (const [key, value] of Object.entries(headers)) {
+        if (Array.isArray(value)) {
+          for (const v of value) {
+            socket.write(`${key}: ${v}\r\n`);
+          }
+        } else {
+          socket.write(`${key}: ${value}\r\n`);
+        }
+      }
+      socket.write('\r\n');
+      if (response.rawPayload?.length) {
+        socket.write(response.rawPayload);
+      }
+      socket.end();
+      delete sockets[socket.socketId];
+    } catch (e) {
+      debugError('inject error', socket.socketId, e);
+      socket.end();
+      delete sockets[socket.socketId];
+    }
+  }
+
+  // Handle WebSocket upgrades directly — no TCP loopback
+  function handleWebSocketUpgrade(socket, data, parsed) {
+    // Synthesize http.IncomingMessage for ws.handleUpgrade
+    const req = new http.IncomingMessage(socket);
+    req.method = parsed.method;
+    req.url = parsed.url;
+    req.headers = parsed.headers;
+    req.httpVersion = '1.1';
+    req.httpVersionMajor = 1;
+    req.httpVersionMinor = 1;
+
+    wss.handleUpgrade(req, socket, Buffer.alloc(0), (ws) => {
+      wss.emit('connection', ws, req);
+    });
+  }
+
   const socketServer = net.createServer((socket) => {
     socket.socketId = b64id.generateId();
     sockets[socket.socketId] = socket;
     socket.parsingStarted = false;
     socket.parsingFinished = false;
     socket.hsyncClient = false;
-    // debug('CONNECTION FROM EXTERNAL', socket.socketId);
 
     socket.on('data', async (data) => {
       if (!socket.hsyncClient) {
-        debug(`→ EXTERNAL DATA ${socket.socketId}`, socket.hostName, data.length, 'parsingStarted', socket.parsingStarted, 'finished', socket.parsingFinished);
+        debug(
+          `→ EXTERNAL DATA ${socket.socketId}`,
+          socket.hostName,
+          data.length,
+          'parsingStarted',
+          socket.parsingStarted,
+          'finished',
+          socket.parsingFinished
+        );
       }
 
       const headerParser = createParser(data);
@@ -42,19 +109,27 @@ async function run(conf = {}) {
           let toSend = data;
           if (socket.webQueue && socket.webQueue.length) {
             toSend = Buffer.concat([data, ...socket.webQueue]);
-            debug('adding web queue to data', socket.socketId, socket.webQueue.length, toSend.length);
+            debug(
+              'adding web queue to data',
+              socket.socketId,
+              socket.webQueue.length,
+              toSend.length
+            );
             socket.webQueue = [];
           }
 
-          if (parsed.url.startsWith(HSYNC_CONNECT_PATH) || (parsed.url === '/favicon.ico')) {
+          if (parsed.url.startsWith(HSYNC_CONNECT_PATH) || parsed.url === '/favicon.ico') {
             debug('hsync path', parsed.url);
-            if (parsed.headers.upgrade) {
+
+            // WebSocket upgrade — handle directly, no loopback
+            if (parsed.headers.upgrade?.toLowerCase() === 'websocket') {
               socket.hsyncClient = true;
+              handleWebSocketUpgrade(socket, toSend, parsed);
+              return;
             }
 
-            // console.log('send to handle local http request', toSend);
-            handleLocalHttpRequest(socket, toSend);
-            // console.log('localh handled');
+            // HTTP request — use fastify.inject(), no loopback
+            await handleLocalHttpRequest(socket, toSend, parsed);
             return;
           }
 
@@ -71,8 +146,6 @@ async function run(conf = {}) {
         socket.webQueue = socket.webQueue || [];
         socket.webQueue.push(data);
         headerParser.addData(data);
-      } else if (socket.parsingFinished && socket.mqTCPSocket) {
-        return socket.mqTCPSocket.write(data);
       } else if (socket.parsingFinished) {
         debug('more data on same con', socket.originalUrl, socket.socketId);
         return forwardWebRequest(socket, data);
@@ -80,14 +153,7 @@ async function run(conf = {}) {
     });
 
     socket.on('close', () => {
-      // debug('EXTERNAL CONNECTION CLOSED', socket.socketId, socket.hostName);
-      if (socket.mqTCPSocket) {
-        debug(`CLOSING ${socket.hsyncClient ? 'MQTT' : 'HTTP'} connection`, socket.socketId, socket.hostName);
-        socket.mqTCPSocket.end();
-        delete sockets[socket.socketId];
-        return;
-      }
-      if (socket.hostName) {
+      if (socket.hostName && !socket.hsyncClient) {
         debug('SENDING CLOSE REQUEST', socket.socketId, socket.hostName);
         sendCloseRequest(socket.hostName, socket.socketId);
       }
@@ -98,20 +164,14 @@ async function run(conf = {}) {
 
     socket.on('error', (error) => {
       debugError('socket error', socket.socketId, error);
-      if (socket.mqTCPSocket) {
-        debug('CLOSING MQTT/HTTP connection', socket.socketId);
-        socket.mqTCPSocket.end();
-      }
       if (sockets[socket.socketId]) {
         delete sockets[socket.socketId];
       }
     });
   });
 
-  const hapi = await startHapi(config);
-  handleLocalHttpRequest = hapi.handleLocalHttpRequest;
   socketServer.listen(config.port);
   debug('hsync server listening on port', config.port);
 }
 
-module.exports = run;
+export default run;

@@ -1,7 +1,8 @@
 # hsync-server
 
+[![CI](https://github.com/monteslu/hsync-server/actions/workflows/ci.yml/badge.svg)](https://github.com/monteslu/hsync-server/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/hsync-server.svg)](https://www.npmjs.com/package/hsync-server)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
 Server component for [hsync](https://github.com/monteslu/hsync) — creates unlimited public web URLs for your local web servers, no matter where they're running.
 
@@ -51,4 +52,4 @@ Your local port 3000 is now available at `https://myapp.your-server.com`
 
 ## License
 
-MIT
+ISC

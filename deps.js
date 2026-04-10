@@ -1,11 +1,6 @@
-const Joi = require('joi');
-const Boom = require('@hapi/boom');
-const b64Id = require('b64id');
-const aedes = require('./aedes');
+import Joi from 'joi';
+import b64Id from 'b64id';
+import * as aedes from './aedes.js';
+import httpError from './lib/http-error.js';
 
-module.exports = {
-  Joi,
-  Boom,
-  b64Id,
-  aedes,
-};
+export { Joi, httpError, b64Id, aedes };
