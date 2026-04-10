@@ -82,17 +82,20 @@ async function run(conf = {}) {
     socket.hsyncClient = false;
 
     socket.on('data', async (data) => {
-      if (!socket.hsyncClient) {
-        debug(
-          `→ EXTERNAL DATA ${socket.socketId}`,
-          socket.hostName,
-          data.length,
-          'parsingStarted',
-          socket.parsingStarted,
-          'finished',
-          socket.parsingFinished
-        );
+      // After WebSocket upgrade, ws owns the socket — don't process its frames
+      if (socket.hsyncClient) {
+        return;
       }
+
+      debug(
+        `→ EXTERNAL DATA ${socket.socketId}`,
+        socket.hostName,
+        data.length,
+        'parsingStarted',
+        socket.parsingStarted,
+        'finished',
+        socket.parsingFinished
+      );
 
       const headerParser = createParser(data);
       if (!socket.parsingStarted) {
