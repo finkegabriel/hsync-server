@@ -44,40 +44,36 @@ config.cookies = {
 config.http = {
   host: '0.0.0.0',
   port: parseInt(process.env.INTERNAL_SOCKET_PORT, 10) || DEFAULTS.INTERNAL_PORT,
-  routes: {
-    cors: {
-      credentials: true,
-      origin: ['*'],
-    },
-    validate: {
-      failAction: (request, h, err) => {
-        throw err;
-      },
-    },
-  },
+};
+
+config.cors = {
+  credentials: true,
+  origin: true,
 };
 
 config.swaggerOptions = {
-  info: {
-    title: pack.name,
-    description: pack.description,
-    version: pack.version,
-  },
-  tags: [
-    {
-      name: 'api',
-      description: 'hsync api',
-      externalDocs: {
-        description: 'find out more',
-        url: 'https://github.com/monteslu/hsync-server',
-      },
+  swagger: {
+    info: {
+      title: pack.name,
+      description: pack.description,
+      version: pack.version,
     },
-  ],
-  basePath: `/${config.hsyncBase}`,
-  documentationPath: `/${config.hsyncBase}/documentation`,
-  swaggerUIPath: `/${config.hsyncBase}/swaggerui/`,
-  jsonPath: `/${config.hsyncBase}/swagger.json`,
-  pathPrefixSize: DEFAULTS.SWAGGER_PATH_PREFIX_SIZE,
+    tags: [
+      {
+        name: 'api',
+        description: 'hsync api',
+        externalDocs: {
+          description: 'find out more',
+          url: 'https://github.com/monteslu/hsync-server',
+        },
+      },
+    ],
+    basePath: `/${config.hsyncBase}`,
+  },
+};
+
+config.swaggerUiOptions = {
+  routePrefix: `/${config.hsyncBase}/documentation`,
 };
 
 export default config;

@@ -1,6 +1,6 @@
 import Aedes from 'aedes';
 import rawr from 'rawr';
-import boom from '@hapi/boom';
+import httpError from './lib/http-error.js';
 import { EventEmitter } from 'events';
 import createDebug from 'debug';
 
@@ -259,7 +259,7 @@ function forwardWebRequest(socket, data, info) {
 
 async function rpcToClient(hostname, methodName, ...rest) {
   if (!clients[hostname]) {
-    return boom.notFound();
+    throw httpError(404, 'Client not found');
   }
   const { peer } = clients[hostname];
   try {
@@ -269,9 +269,9 @@ async function rpcToClient(hostname, methodName, ...rest) {
     return result;
   } catch (e) {
     if (e.code === 504) {
-      throw boom.gatewayTimeout(`RPC Timeout to ${hostname} client`);
+      throw httpError(504, `RPC Timeout to ${hostname} client`);
     } else if (e.message) {
-      throw boom.notImplemented(e.message);
+      throw httpError(501, e.message);
     }
     throw e;
   }
@@ -279,7 +279,7 @@ async function rpcToClient(hostname, methodName, ...rest) {
 
 async function notifyToClient(hostname, methodName, ...rest) {
   if (!clients[hostname]) {
-    return boom.notFound();
+    throw httpError(404, 'Client not found');
   }
   const { peer } = clients[hostname];
   try {
@@ -288,9 +288,9 @@ async function notifyToClient(hostname, methodName, ...rest) {
     return 'ok';
   } catch (e) {
     if (e.code === 504) {
-      throw boom.gatewayTimeout(`RPC Timeout to ${hostname} client`);
+      throw httpError(504, `RPC Timeout to ${hostname} client`);
     } else if (e.message) {
-      throw boom.notImplemented(e.message);
+      throw httpError(501, e.message);
     }
     throw e;
   }
@@ -307,7 +307,7 @@ async function peerRpcToClient(msg) {
 
   if (!toClient) {
     debug('no client found', toUrl.hostname);
-    throw boom.notFound('Client not found', toUrl.hostname);
+    throw httpError(404, `Client not found: ${toUrl.hostname}`);
   }
 
   // TODO validate source (fromUrl)
@@ -320,9 +320,9 @@ async function peerRpcToClient(msg) {
   } catch (e) {
     // delete rpcRequests[peer.requestId];
     if (e.code === 504) {
-      throw boom.gatewayTimeout(`RPC Timeout to ${toUrl.hostname} client`);
+      throw httpError(504, `RPC Timeout to ${toUrl.hostname} client`);
     } else if (e.message) {
-      throw boom.notImplemented(e.message);
+      throw httpError(501, e.message);
     }
     throw e;
   }
@@ -335,7 +335,7 @@ async function peerNotifyToClient(toHost, methodName, msg) {
 
   if (!toClient) {
     debug('no client found', toHost);
-    throw boom.notFound('Client not found', toHost);
+    throw httpError(404, `Client not found: ${toHost}`);
   }
 
   try {
@@ -346,9 +346,9 @@ async function peerNotifyToClient(toHost, methodName, msg) {
   } catch (e) {
     // delete rpcRequests[peer.requestId];
     if (e.code === 504) {
-      throw boom.gatewayTimeout(`RPC Timeout to ${toHost} client`);
+      throw httpError(504, `RPC Timeout to ${toHost} client`);
     } else if (e.message) {
-      throw boom.notImplemented(e.message);
+      throw httpError(501, e.message);
     }
     throw e;
   }

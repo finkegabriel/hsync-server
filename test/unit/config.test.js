@@ -24,7 +24,7 @@ describe('config', () => {
 
   it('should have swagger options', () => {
     expect(config.swaggerOptions).toBeDefined();
-    expect(config.swaggerOptions.basePath).toBe(`/${config.hsyncBase}`);
+    expect(config.swaggerOptions.swagger.basePath).toBe(`/${config.hsyncBase}`);
   });
 
   it('should have unauthed timeout default of 3 hours', () => {

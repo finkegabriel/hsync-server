@@ -6,7 +6,8 @@
   "main": "index.js",
   "exports": {
     ".": "./index.js",
-    "./deps": "./deps.js"
+    "./deps": "./deps.js",
+    "./config": "./config.js"
   },
   "scripts": {
     "test": "vitest",
@@ -23,16 +24,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@hapi/boom": "^10.0.1",
-    "@hapi/cookie": "^12.0.1",
-    "@hapi/hapi": "^21.4.4",
-    "@hapi/inert": "^7.1.0",
-    "@hapi/vision": "^7.0.3",
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/secure-session": "^8.0.0",
+    "@fastify/sensible": "^6.0.0",
+    "@fastify/static": "^8.0.0",
+    "@fastify/swagger": "^9.0.0",
+    "@fastify/swagger-ui": "^5.0.0",
+    "@fastify/view": "^10.0.0",
     "aedes": "^0.51.3",
     "b64id": "^1.1.1",
     "debug": "^4.4.3",
+    "fastify": "^5.0.0",
     "handlebars": "^4.7.8",
-    "hapi-swagger": "^17.3.2",
     "joi": "^17.13.3",
     "lodash.sample": "^4.2.1",
     "rawr": "^0.19.0",

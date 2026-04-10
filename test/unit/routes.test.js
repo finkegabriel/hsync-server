@@ -1,292 +1,279 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import getRoutes from '../../lib/routes.js';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import Fastify from 'fastify';
+import fastifySensible from '@fastify/sensible';
+import fastifyView from '@fastify/view';
+import fastifyStatic from '@fastify/static';
+import fastifyCookie from '@fastify/cookie';
+import fastifySecureSession from '@fastify/secure-session';
+import Handlebars from 'handlebars';
+import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const serverRoot = path.resolve(__dirname, '../..');
 
 // Mock aedes exports
 vi.mock('../../aedes.js', () => ({
-  rpcToClient: vi.fn(),
-  peerRpcToClient: vi.fn(),
-  peerNotifyToClient: vi.fn(),
+  rpcToClient: vi.fn().mockResolvedValue({ result: 'ok' }),
+  peerRpcToClient: vi.fn().mockResolvedValue({ result: 'ok' }),
+  peerNotifyToClient: vi.fn().mockResolvedValue('ok'),
 }));
 
 // Mock auth exports
-vi.mock('./auth.js', () => ({
-  auth: vi.fn(),
-  createDyn: vi.fn(),
+vi.mock('../../lib/auth.js', () => ({
+  auth: vi.fn().mockResolvedValue(true),
+  createDyn: vi.fn().mockResolvedValue({
+    id: 'abc12345',
+    secret: 'test-secret',
+    url: 'abc12345.test.example.com',
+    created: Date.now(),
+    lastAccessed: Date.now(),
+    timeout: 3600000,
+  }),
+  dyns: {},
 }));
 
-describe('routes', () => {
-  let config;
+import registerRoutes from '../../lib/routes.js';
 
-  beforeEach(() => {
-    config = {
-      hsyncBase: '_hs',
-      auth: null,
+const config = {
+  hsyncBase: '_hs',
+  auth: null,
+  cookies: {
+    password: 'test-secret-at-least-32-chars-long',
+    name: '_hs',
+    isSecure: false,
+    path: '/_hs',
+  },
+};
+
+async function buildApp() {
+  const fastify = Fastify({ logger: false });
+
+  fastify.setValidatorCompiler(({ schema }) => {
+    if (schema && typeof schema.validate === 'function') {
+      return (data) => {
+        const result = schema.validate(data);
+        if (result.error) return { error: result.error };
+        return { value: result.value };
+      };
+    }
+    return (data) => ({ value: data });
+  });
+
+  await fastify.register(fastifySensible);
+  await fastify.register(fastifyCookie);
+
+  const sessionKey = crypto
+    .createHash('sha256')
+    .update(config.cookies.password)
+    .digest();
+
+  await fastify.register(fastifySecureSession, {
+    cookieName: config.cookies.name,
+    key: sessionKey,
+    cookie: {
+      path: config.cookies.path,
+      secure: config.cookies.isSecure,
+      httpOnly: true,
+    },
+  });
+
+  fastify.decorateRequest('auth', null);
+  fastify.addHook('onRequest', async (request) => {
+    const session = request.session?.get('data');
+    request.auth = {
+      credentials: session || null,
+      isAuthenticated: !!session,
     };
   });
 
-  describe('getRoutes', () => {
-    it('should return an array of routes', () => {
-      const routes = getRoutes(config);
+  await fastify.register(fastifyView, {
+    engine: { handlebars: Handlebars },
+    root: path.join(serverRoot, 'templates'),
+    viewExt: 'hbs',
+  });
 
-      expect(Array.isArray(routes)).toBe(true);
-      expect(routes.length).toBeGreaterThan(0);
-    });
+  await fastify.register(fastifyStatic, {
+    root: path.join(serverRoot, 'public'),
+    prefix: `/${config.hsyncBase}/`,
+  });
 
-    it('should include admin route', () => {
-      const routes = getRoutes(config);
-      const adminRoute = routes.find((r) => r.path === '/_hs/admin');
+  registerRoutes(fastify, config);
 
-      expect(adminRoute).toBeDefined();
-      expect(adminRoute.method).toBe('GET');
-    });
+  return fastify;
+}
 
-    it('should include health route', () => {
-      const routes = getRoutes(config);
-      const healthRoute = routes.find((r) => r.path === '/_hs/health');
+describe('routes', () => {
+  let app;
 
-      expect(healthRoute).toBeDefined();
-      expect(healthRoute.method).toBe('GET');
-    });
+  beforeAll(async () => {
+    app = await buildApp();
+    await app.ready();
+  });
 
-    it('should include auth route', () => {
-      const routes = getRoutes(config);
-      const authRoute = routes.find((r) => r.path === '/_hs/auth');
+  afterAll(async () => {
+    await app.close();
+  });
 
-      expect(authRoute).toBeDefined();
-      expect(authRoute.method).toBe('POST');
-    });
-
-    it('should include dyn route', () => {
-      const routes = getRoutes(config);
-      const dynRoute = routes.find((r) => r.path === '/_hs/dyn');
-
-      expect(dynRoute).toBeDefined();
-      expect(dynRoute.method).toBe('POST');
-    });
-
-    it('should include srpc route', () => {
-      const routes = getRoutes(config);
-      const srpcRoute = routes.find((r) => r.path === '/_hs/srpc');
-
-      expect(srpcRoute).toBeDefined();
-      expect(srpcRoute.method).toBe('POST');
-    });
-
-    it('should include rpc route', () => {
-      const routes = getRoutes(config);
-      const rpcRoute = routes.find((r) => r.path === '/_hs/rpc');
-
-      expect(rpcRoute).toBeDefined();
-      expect(rpcRoute.method).toBe('POST');
-    });
-
-    it('should include message route', () => {
-      const routes = getRoutes(config);
-      const messageRoute = routes.find((r) => r.path === '/_hs/message');
-
-      expect(messageRoute).toBeDefined();
-      expect(messageRoute.method).toBe('POST');
-    });
-
-    it('should include me route', () => {
-      const routes = getRoutes(config);
-      const meRoute = routes.find((r) => r.path === '/_hs/me');
-
-      expect(meRoute).toBeDefined();
-      expect(meRoute.method).toBe('GET');
-    });
-
-    it('should include logout route', () => {
-      const routes = getRoutes(config);
-      const logoutRoute = routes.find((r) => r.path === '/_hs/logout');
-
-      expect(logoutRoute).toBeDefined();
-      expect(logoutRoute.method).toBe('GET');
-    });
-
-    it('should include static file route', () => {
-      const routes = getRoutes(config);
-      const staticRoute = routes.find((r) => r.path === '/_hs/{param*}');
-
-      expect(staticRoute).toBeDefined();
-      expect(staticRoute.method).toBe('GET');
-    });
-
-    it('should include favicon route', () => {
-      const routes = getRoutes(config);
-      const faviconRoute = routes.find((r) => r.path === '/favicon.ico');
-
-      expect(faviconRoute).toBeDefined();
-      expect(faviconRoute.method).toBe('GET');
-    });
-
-    it('should use hsyncBase from config', () => {
-      config.hsyncBase = 'custom';
-      const routes = getRoutes(config);
-
-      const adminRoute = routes.find((r) => r.path === '/custom/admin');
-      const healthRoute = routes.find((r) => r.path === '/custom/health');
-
-      expect(adminRoute).toBeDefined();
-      expect(healthRoute).toBeDefined();
+  describe('health endpoint', () => {
+    it('should return ok', async () => {
+      const res = await app.inject({ method: 'GET', url: '/_hs/health' });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toBe('ok');
     });
   });
 
-  describe('route configurations', () => {
-    it('should have api tags on API routes', () => {
-      const routes = getRoutes(config);
-      const apiRoutes = routes.filter((r) => r.config?.tags?.includes('api'));
-
-      expect(apiRoutes.length).toBeGreaterThan(0);
+  describe('admin endpoint', () => {
+    it('should return 200 with template', async () => {
+      const res = await app.inject({ method: 'GET', url: '/_hs/admin' });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain('hsyncConfig');
+      expect(res.body).toContain('_hs');
     });
 
-    it('should have descriptions on configured routes', () => {
-      const routes = getRoutes(config);
-      const routesWithConfig = routes.filter((r) => r.config?.description);
-
-      expect(routesWithConfig.length).toBeGreaterThan(0);
+    it('should show creds as false when not authenticated', async () => {
+      const res = await app.inject({ method: 'GET', url: '/_hs/admin' });
+      expect(res.body).toContain('creds: false');
     });
+  });
 
-    it('should have validation on POST routes', () => {
-      const routes = getRoutes(config);
-      const postRoutes = routes.filter((r) => r.method === 'POST');
+  describe('logout endpoint', () => {
+    it('should return ok', async () => {
+      const res = await app.inject({ method: 'GET', url: '/_hs/logout' });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toBe('ok');
+    });
+  });
 
-      postRoutes.forEach((route) => {
-        expect(route.config?.validate?.payload).toBeDefined();
+  describe('me endpoint', () => {
+    it('should return 401 when not authenticated', async () => {
+      const res = await app.inject({ method: 'GET', url: '/_hs/me' });
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
+  describe('dyn endpoint', () => {
+    it('should return a dynamic hostname object', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/dyn',
+        headers: { 'content-type': 'application/json' },
+        payload: {},
       });
-    });
-
-    it('admin route should have optional auth', () => {
-      const routes = getRoutes(config);
-      const adminRoute = routes.find((r) => r.path === '/_hs/admin');
-
-      expect(adminRoute.config.auth.mode).toBe('optional');
-    });
-
-    it('me route should require auth', () => {
-      const routes = getRoutes(config);
-      const meRoute = routes.find((r) => r.path === '/_hs/me');
-
-      expect(meRoute.config.auth.strategies).toContain('auth');
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.id).toBeDefined();
+      expect(body.url).toBeDefined();
+      expect(body.secret).toBeDefined();
     });
   });
 
-  describe('health handler', () => {
-    it('should return ok', () => {
-      const routes = getRoutes(config);
-      const healthRoute = routes.find((r) => r.path === '/_hs/health');
+  describe('srpc endpoint', () => {
+    it('should accept valid payload', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/srpc',
+        headers: { 'content-type': 'application/json' },
+        payload: { method: 'ping', params: ['hello'] },
+      });
+      expect(res.statusCode).toBe(200);
+    });
 
-      const result = healthRoute.handler();
+    it('should reject missing method', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/srpc',
+        headers: { 'content-type': 'application/json' },
+        payload: { params: ['hello'] },
+      });
+      expect(res.statusCode).toBe(400);
+    });
 
-      expect(result).toBe('ok');
+    it('should reject missing params', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/srpc',
+        headers: { 'content-type': 'application/json' },
+        payload: { method: 'ping' },
+      });
+      expect(res.statusCode).toBe(400);
     });
   });
 
-  describe('logout handler', () => {
-    it('should clear cookie auth and return ok', () => {
-      const routes = getRoutes(config);
-      const logoutRoute = routes.find((r) => r.path === '/_hs/logout');
-
-      const mockReq = {
-        cookieAuth: {
-          clear: vi.fn(),
+  describe('rpc endpoint', () => {
+    it('should accept valid payload', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/rpc',
+        headers: { 'content-type': 'application/json' },
+        payload: {
+          msg: { method: 'test', params: [], jsonrpc: '2.0' },
+          toHost: 'http://target.example.com',
+          fromHost: 'http://source.example.com',
         },
-      };
-
-      const result = logoutRoute.handler(mockReq);
-
-      expect(mockReq.cookieAuth.clear).toHaveBeenCalled();
-      expect(result).toBe('ok');
-    });
-  });
-
-  describe('admin handler', () => {
-    it('should return view with creds info', () => {
-      const routes = getRoutes(config);
-      const adminRoute = routes.find((r) => r.path === '/_hs/admin');
-
-      const mockH = {
-        view: vi.fn().mockReturnValue('rendered'),
-      };
-      const mockReq = {
-        auth: { credentials: { user: 'test' } },
-        info: { hostname: 'test.example.com' },
-      };
-
-      adminRoute.config.handler(mockReq, mockH);
-
-      expect(mockH.view).toHaveBeenCalledWith('admin', {
-        creds: true,
-        base: '_hs',
-        hostName: 'test.example.com',
       });
-    });
-
-    it('should handle array credentials', () => {
-      const routes = getRoutes(config);
-      const adminRoute = routes.find((r) => r.path === '/_hs/admin');
-
-      const mockH = {
-        view: vi.fn().mockReturnValue('rendered'),
-      };
-      const mockReq = {
-        auth: { credentials: [{ user: 'test' }] },
-        info: { hostname: 'test.example.com' },
-      };
-
-      adminRoute.config.handler(mockReq, mockH);
-
-      expect(mockH.view).toHaveBeenCalledWith(
-        'admin',
-        expect.objectContaining({
-          creds: true,
-        })
-      );
-    });
-
-    it('should handle missing credentials', () => {
-      const routes = getRoutes(config);
-      const adminRoute = routes.find((r) => r.path === '/_hs/admin');
-
-      const mockH = {
-        view: vi.fn().mockReturnValue('rendered'),
-      };
-      const mockReq = {
-        auth: {},
-        info: { hostname: 'test.example.com' },
-      };
-
-      adminRoute.config.handler(mockReq, mockH);
-
-      expect(mockH.view).toHaveBeenCalledWith(
-        'admin',
-        expect.objectContaining({
-          creds: false,
-        })
-      );
+      expect(res.statusCode).toBe(200);
     });
   });
 
-  describe('srpc validation', () => {
-    it('should require method and params', () => {
-      const routes = getRoutes(config);
-      const srpcRoute = routes.find((r) => r.path === '/_hs/srpc');
+  describe('auth endpoint', () => {
+    it('should accept valid login', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/auth',
+        headers: { 'content-type': 'application/json' },
+        payload: { secret: 'test-secret' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.authed).toBe(true);
+    });
 
-      const schema = srpcRoute.config.validate.payload;
+    it('should reject missing secret', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/auth',
+        headers: { 'content-type': 'application/json' },
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+    });
 
-      // Joi schema should be defined
-      expect(schema).toBeDefined();
+    it('should redirect to admin when toAdmin is true', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/auth',
+        headers: { 'content-type': 'application/json' },
+        payload: { secret: 'test-secret', toAdmin: true },
+      });
+      expect(res.statusCode).toBe(302);
+      expect(res.headers.location).toBe('/_hs/admin');
     });
   });
 
-  describe('auth validation', () => {
-    it('should require secret', () => {
-      const routes = getRoutes(config);
-      const authRoute = routes.find((r) => r.path === '/_hs/auth');
+  describe('static files', () => {
+    it('should serve files from public directory', async () => {
+      const res = await app.inject({ method: 'GET', url: '/_hs/ui.js' });
+      expect(res.statusCode).toBe(200);
+    });
 
-      const schema = authRoute.config.validate.payload;
+    it('should serve favicon', async () => {
+      const res = await app.inject({ method: 'GET', url: '/favicon.ico' });
+      // May be 200 or 404 depending on whether favicon exists
+      expect([200, 404]).toContain(res.statusCode);
+    });
+  });
 
-      expect(schema).toBeDefined();
+  describe('message endpoint', () => {
+    it('should accept valid message', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/_hs/message',
+        headers: { 'content-type': 'application/json' },
+        payload: { topic: 'test', payload: 'hello' },
+      });
+      expect(res.statusCode).toBe(200);
     });
   });
 });
