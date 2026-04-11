@@ -60,7 +60,9 @@ async function startFastify(config) {
   await fastify.register(fastifySensible);
 
   // Cookie + secure session
-  await fastify.register(fastifyCookie);
+  await fastify.register(fastifyCookie, {
+    secret: config.cookies.password || 'hsync-default-cookie-secret',
+  });
 
   // Generate a deterministic key from the cookie password
   const sessionKey = crypto
