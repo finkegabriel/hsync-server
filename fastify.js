@@ -208,7 +208,7 @@ function registerExtAuthStrategy(fastify, strategy, config) {
 }
 
 function registerExtRoute(fastify, route, config) {
-  const routePath = `/${config.hsyncBase}/x${route.path}`;
+  const routePath = `/${config.hsyncBase}/x${route.path}`.replace(/\{(\w+)\}/g, ':$1');
   const method = (route.method || 'GET').toLowerCase();
 
   const opts = {};
