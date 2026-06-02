@@ -1,7 +1,6 @@
 const config = window.hsyncConfig;
 const { preact, apiFetch, debug } = config.libs;
 const { html, useState, useEffect } = preact;
-const libp2p = config.p2pAddress;
 
 export function Relays() {
   const [updating, setUpdating] = useState(false);
@@ -13,7 +12,7 @@ export function Relays() {
   const [hostName, setHostName] = useState(null);
   const [whitelist, setWhitelist] = useState(null);
   const [blacklist, setBlacklist] = useState(null);
-  const [p2pAddress] = libp2p;
+  const [p2pAddress] = config.libs.p2pAddress;
 
   const getRelays = async () => {
     const results = await apiFetch.post('/srpc', { method: 'getSocketRelays', params: [] });

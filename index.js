@@ -45,7 +45,7 @@ async function run(conf = {}) {
     console.log('Libp2p started with addresses:');
     node.start();
     console.log(node);
-    config.p2pAddress = node;
+    defaultConfig.p2pAddress = node;
     debug('libp2p started with id', node.peerId.toString());
   }
 
@@ -208,4 +208,5 @@ async function run(conf = {}) {
   debug('hsync server listening on port', config.port);
 }
 
+export { defaultConfig };
 export default run;
