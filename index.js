@@ -41,11 +41,14 @@ async function run(conf = {}) {
 
   const { fastify, wss } = await startFastify(config);
 
-  if (config.enableP2P) {
+  if (config.enableP2P == true) {
     console.log('Libp2p started with addresses:');
     node.start();
     console.log(node);
-    defaultConfig.p2pAddress = node;
+    defaultConfig.p2pAddress = {
+      ws: node.getMultiaddrs().find((addr) => addr.toString().includes('/ws')).toString(),
+      peerId: node.peerId.toString(),
+    };
     debug('libp2p started with id', node.peerId.toString());
   }
 
