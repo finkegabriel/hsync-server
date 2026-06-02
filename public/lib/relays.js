@@ -1,6 +1,7 @@
 const config = window.hsyncConfig;
 const { preact, apiFetch, debug } = config.libs;
 const { html, useState, useEffect } = preact;
+const { libp2p } = config.p2pAddress;
 
 export function Relays() {
   const [updating, setUpdating] = useState(false);
@@ -12,6 +13,7 @@ export function Relays() {
   const [hostName, setHostName] = useState(null);
   const [whitelist, setWhitelist] = useState(null);
   const [blacklist, setBlacklist] = useState(null);
+  const [p2pAddress, setP2pAddress] = useState(libp2p);
 
   const getRelays = async () => {
     const results = await apiFetch.post('/srpc', { method: 'getSocketRelays', params: [] });
@@ -66,6 +68,8 @@ export function Relays() {
       setError(e);
     }
   };
+
+  const libp2pRelayAddress = p2pAddress ? `${p2pAddress}/p2p-circuit/p2p/${config.peerId}` : null;
 
   return html`
     <div class="card" style="width: 90%; margin: 10px;">
@@ -161,6 +165,16 @@ export function Relays() {
             Add Relay
           </button>
         </div>
+        ${libp2pRelayAddress
+          ? html`
+              <div style="margin-top: 20px; padding: 10px; border: 1px solid grey;">
+                <h5>Libp2p Relay Address</h5>
+                <p>
+                  ${libp2pRelayAddress}
+                </p>
+              </div>
+            `
+          : ''}
       </div>
     </div>
   `;

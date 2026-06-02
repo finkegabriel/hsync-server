@@ -51,6 +51,7 @@ async function run(conf = {}) {
     console.log('Libp2p started with addresses:');
     server.getMultiaddrs().forEach((addr) => {
       console.log(addr.toString());
+      config.p2pAddress = [addr.toString()];
     });
     debug('libp2p started with id', server.peerId.toString());
   }
