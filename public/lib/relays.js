@@ -1,5 +1,5 @@
 const config = window.hsyncConfig;
-const { p2pAddress } = window.hsyncConfig;
+const { p2pAddress } = window.libp2p || {};
 const { preact, apiFetch, debug } = config.libs;
 const { html, useState, useEffect } = preact;
 

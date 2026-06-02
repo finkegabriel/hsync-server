@@ -14,7 +14,7 @@ import { createParser } from './lib/simple-parse.js';
 import sockets from './lib/socket-map.js';
 import { forwardWebRequest, sendCloseRequest } from './aedes.js';
 import startFastify from './fastify.js';
-import defaultConfig from './config.js';
+import defaultConfig,{p2pConfig} from './config.js';
 
 const debug = createDebug('hsync:info');
 const debugError = createDebug('error');
@@ -45,7 +45,7 @@ async function run(conf = {}) {
     console.log('Libp2p started with addresses:');
     node.start();
     console.log(node);
-    defaultConfig.p2pAddress = {
+    p2pConfig.p2pAddress = {
       ws: node.getMultiaddrs().find((addr) => addr.toString().includes('/ws')).toString(),
       peerId: node.peerId.toString(),
     };
@@ -211,5 +211,5 @@ async function run(conf = {}) {
   debug('hsync server listening on port', config.port);
 }
 
-export { defaultConfig };
+export { defaultConfig, p2pConfig };
 export default run;
