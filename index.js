@@ -19,7 +19,7 @@ const debugError = createDebug('error');
 
 const server = await createLibp2p({
   addresses: {
-    listen: ['/ip4/0.0.0.0/tcp/8883']
+    listen: ['/ip4/0.0.0.0/tcp/8884']
   },
   transports: [
     tcp()
