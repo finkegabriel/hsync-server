@@ -1,7 +1,7 @@
 const config = window.hsyncConfig;
 const { preact, apiFetch, debug } = config.libs;
 const { html, useState, useEffect } = preact;
-const { libp2p } = config.p2pAddress;
+const libp2p = config.p2pAddress;
 
 export function Relays() {
   const [updating, setUpdating] = useState(false);
