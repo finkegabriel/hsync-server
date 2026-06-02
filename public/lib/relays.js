@@ -12,7 +12,7 @@ export function Relays() {
   const [hostName, setHostName] = useState(null);
   const [whitelist, setWhitelist] = useState(null);
   const [blacklist, setBlacklist] = useState(null);
-  const [p2pAddress] = config.libs.p2pAddress;
+  const [p2pAddress] = config.p2pAddress;
 
   const getRelays = async () => {
     const results = await apiFetch.post('/srpc', { method: 'getSocketRelays', params: [] });
