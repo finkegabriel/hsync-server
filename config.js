@@ -78,4 +78,4 @@ config.swaggerUiOptions = {
 };
 
 export default config;
-export { DEFAULTS, p2pConfig };
+export { DEFAULTS };
