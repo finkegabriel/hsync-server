@@ -4,7 +4,7 @@ import htm from 'htm';
 import apiFetch from './api-fetch.js';
 import debug from 'debug';
 import config from '../config.js';
-import { defaultConfig, p2pConfig } from '../index.js';
+import { p2pConfig } from '../lib/libp2p.js';
 
 const html = htm.bind(h);
 
@@ -23,5 +23,5 @@ window.hsyncConfig.libs = {
 };
 
 window.libp2p = {
-    p2pAddress: p2pConfig.p2pAddress,
+    p2pAddress: p2pConfig,
 };

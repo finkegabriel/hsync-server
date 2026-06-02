@@ -35,10 +35,6 @@ const config = {
   enableP2P: process.env.HSYNC_ENABLE_P2P === 'true' || false,
 };
 
-let p2pConfig = {
-  p2pAddress: null,
-}
-
 config.cookies = {
   password: process.env.HSYNC_COOKIE_SECRET || config.hsyncSecret + config.hsyncSecret, // at least 32 characters
   name: config.hsyncBase,

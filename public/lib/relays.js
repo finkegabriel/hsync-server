@@ -1,7 +1,6 @@
 const config = window.hsyncConfig;
 const { preact, apiFetch, debug } = config.libs;
 const { html, useState, useEffect } = preact;
-const { p2pAddress } = window.libp2p || {};
 
 export function Relays() {
   const [updating, setUpdating] = useState(false);
@@ -67,8 +66,6 @@ export function Relays() {
       setError(e);
     }
   };
-
-  const libp2pRelayAddress = p2pAddress ? `${p2pAddress}/p2p-circuit/p2p/${config.peerId}` : null;
 
   return html`
     <div class="card" style="width: 90%; margin: 10px;">
@@ -164,16 +161,6 @@ export function Relays() {
             Add Relay
           </button>
         </div>
-          ${libp2pRelayAddress
-      ? html`
-              <div style="margin-top: 20px; padding: 10px; border: 1px solid grey;">
-                <h5>Libp2p Relay Address</h5>
-                <p>
-                  ${libp2pRelayAddress}
-                </p>
-              </div>
-            `
-      : ''}
       </div>
     </div>
   `;

@@ -10,11 +10,12 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { identify } from '@libp2p/identify'
 import { circuitRelayServer } from '@libp2p/circuit-relay-v2'
 
+import { p2pConfig } from './libp2p.js';
 import { createParser } from './lib/simple-parse.js';
 import sockets from './lib/socket-map.js';
 import { forwardWebRequest, sendCloseRequest } from './aedes.js';
 import startFastify from './fastify.js';
-import defaultConfig,{p2pConfig} from './config.js';
+import defaultConfig from './config.js';
 
 const debug = createDebug('hsync:info');
 const debugError = createDebug('error');
@@ -46,7 +47,7 @@ async function run(conf = {}) {
     await node.start();
     console.log(node);
     p2pConfig.p2pAddress = {
-      ws: node.getMultiaddrs().find((addr) => addr.toString().includes('/ws')).toString(),
+      ws: node.getMultiaddrs().map(a => a.toString()),
       peerId: node.peerId.toString(),
     };
     debug('libp2p started with id', node.peerId.toString());
@@ -211,5 +212,4 @@ async function run(conf = {}) {
   debug('hsync server listening on port', config.port);
 }
 
-export { defaultConfig, p2pConfig };
 export default run;
