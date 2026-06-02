@@ -2,6 +2,11 @@ import net from 'net';
 import http from 'http';
 import b64id from 'b64id';
 import createDebug from 'debug';
+import { createLibp2p } from 'libp2p'
+import { tcp } from '@libp2p/tcp'
+import { noise } from '@chainsafe/libp2p-noise'
+import { mplex } from '@libp2p/mplex'
+import { circuitRelayServer } from '@libp2p/circuit-relay-v2'
 
 import { createParser } from './lib/simple-parse.js';
 import sockets from './lib/socket-map.js';
@@ -12,11 +17,43 @@ import defaultConfig from './config.js';
 const debug = createDebug('hsync:info');
 const debugError = createDebug('error');
 
+const server = await createLibp2p({
+  addresses: {
+    listen: ['/ip4/0.0.0.0/tcp/8883']
+  },
+  transports: [
+    tcp()
+  ],
+  streamMuxers: [
+    mplex()
+  ],
+  connectionEncryption: [
+    noise()
+  ],
+  services: {
+    relay: circuitRelayServer({
+      reservations:{
+        maxReservations: 100, // Number of client slots
+        reservationTtl: 300000,
+      }
+    })
+  }
+});
+
 async function run(conf = {}) {
   const config = { ...defaultConfig, ...conf };
   const HSYNC_CONNECT_PATH = `/${config.hsyncBase}`;
 
   const { fastify, wss } = await startFastify(config);
+
+  if(config.enableP2P) {
+    await server.start();
+    console.log('Libp2p started with addresses:');
+    server.getMultiaddrs().forEach((addr) => {
+      console.log(addr.toString());
+    });
+    debug('libp2p started with id', server.peerId.toString());
+  }
 
   // Handle HTTP requests to /_hs/* via fastify.inject() — no TCP loopback
   async function handleLocalHttpRequest(socket, data, parsed) {

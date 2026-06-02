@@ -32,6 +32,7 @@ const config = {
   unauthedNames: process.env.HSYNC_ALLOW_UNAUTHED_NAMES || false,
   unauthedTimeout: Number(process.env.HSYNC_UNAUTHED_TIMEOUT) || DEFAULTS.UNAUTHED_SESSION_TIMEOUT_MS,
   unauthedNameChars: Number(process.env.HSYNC_UNAUTHED_NAME_CHARS) || DEFAULTS.UNAUTHED_NAME_LENGTH,
+  enableP2P: process.env.HSYNC_ENABLE_P2P === 'true' || false,
 };
 
 config.cookies = {
