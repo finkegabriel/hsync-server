@@ -10,7 +10,7 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { identify } from '@libp2p/identify'
 import { circuitRelayServer } from '@libp2p/circuit-relay-v2'
 
-import { p2pConfig } from './libp2p.js';
+import { p2pConfig } from './lib/libp2p.js';
 import { createParser } from './lib/simple-parse.js';
 import sockets from './lib/socket-map.js';
 import { forwardWebRequest, sendCloseRequest } from './aedes.js';
