@@ -43,7 +43,7 @@ async function run(conf = {}) {
 
   if (config.enableP2P == true) {
     console.log('Libp2p started with addresses:');
-    node.start();
+    await node.start();
     console.log(node);
     p2pConfig.p2pAddress = {
       ws: node.getMultiaddrs().find((addr) => addr.toString().includes('/ws')).toString(),

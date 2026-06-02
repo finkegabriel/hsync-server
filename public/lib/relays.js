@@ -1,7 +1,7 @@
 const config = window.hsyncConfig;
-const { p2pAddress } = window.libp2p || {};
 const { preact, apiFetch, debug } = config.libs;
 const { html, useState, useEffect } = preact;
+const { p2pAddress } = window.libp2p || {};
 
 export function Relays() {
   const [updating, setUpdating] = useState(false);
@@ -13,7 +13,6 @@ export function Relays() {
   const [hostName, setHostName] = useState(null);
   const [whitelist, setWhitelist] = useState(null);
   const [blacklist, setBlacklist] = useState(null);
-  const [p2pAddress] = p2pAddress;
 
   const getRelays = async () => {
     const results = await apiFetch.post('/srpc', { method: 'getSocketRelays', params: [] });
@@ -83,18 +82,18 @@ export function Relays() {
           This is useful for sharing a service that this hsync client has access to.
         </h6>
         ${updating
-          ? html`<div class="spinner-border text-primary" role="status">
+      ? html`<div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">Loading...</span>
             </div>`
-          : ''}
+      : ''}
         ${error
-          ? html`<div class="alert alert-danger" role="alert">
+      ? html`<div class="alert alert-danger" role="alert">
               ${error?.message || error?.toString()}
             </div>`
-          : ''}
+      : ''}
         ${rprResult ? html`<div class="alert alert-success" role="alert">${rprResult}</div>` : ''}
         ${relays?.length
-          ? html`
+      ? html`
               <div style="margin: 10px; border: 1px solid grey; padding: 10px; width: 90%;">
                 <table style="width: 90%;">
                   <thead>
@@ -108,7 +107,7 @@ export function Relays() {
                   </thead>
                   <tbody>
                     ${relays.map((r) => {
-                      return html`
+        return html`
                         <tr>
                           <td>${r.port}</td>
                           <td>${r.hostName}</td>
@@ -117,12 +116,12 @@ export function Relays() {
                           <td>${r.blacklist}</td>
                         </tr>
                       `;
-                    })}
+      })}
                   </tbody>
                 </table>
               </div>
             `
-          : ''}
+      : ''}
         <div class="mb-3">
           <input
             type="number"
@@ -165,8 +164,8 @@ export function Relays() {
             Add Relay
           </button>
         </div>
-        ${libp2pRelayAddress
-          ? html`
+          ${libp2pRelayAddress
+      ? html`
               <div style="margin-top: 20px; padding: 10px; border: 1px solid grey;">
                 <h5>Libp2p Relay Address</h5>
                 <p>
@@ -174,7 +173,7 @@ export function Relays() {
                 </p>
               </div>
             `
-          : ''}
+      : ''}
       </div>
     </div>
   `;
