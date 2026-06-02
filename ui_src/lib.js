@@ -20,5 +20,8 @@ window.hsyncConfig.libs = {
   htm,
   apiFetch,
   debug,
-  p2pAddress: defaultConfig.p2pAddress,
+};
+
+window.hsyncConfig.libp2p = {
+    p2pAddress: defaultConfig.p2pAddress,
 };
