@@ -44,6 +44,7 @@ async function run(conf = {}) {
   if (config.enableP2P) {
     console.log('Libp2p started with addresses:');
     node.start();
+    console.log(node);
     config.p2pAddress = node;
     debug('libp2p started with id', node.peerId.toString());
   }
