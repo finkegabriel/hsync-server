@@ -51,6 +51,8 @@ async function run(conf = {}) {
       peerId: node.peerId.toString(),
     };
     console.log(p2pConfig);
+    console.log(node.getMultiaddrs().map(a => a.toString()))
+    debug('log: ', node.getMultiaddrs().map(a => a.toString()));
     debug('libp2p started with id', node.peerId.toString());
   }
 
