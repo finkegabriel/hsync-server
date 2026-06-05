@@ -12,6 +12,16 @@ const styles = {
   },
 };
 
+function P2pAddress() {
+  const { p2pAddress } = window.libp2p || {};
+  if (!p2pAddress) return html`<p>P2P not started</p>`;
+  return html`
+    <div>
+      <p>Peer ID: ${p2pAddress.peerId}</p>
+      <ul>${p2pAddress.ws.map((a) => html`<li>${a}</li>`)}</ul>
+    </div>`;
+}
+
 function App() {
   const [creds, setCreds] = useState(config.creds);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -71,6 +81,7 @@ function App() {
               <div>${error?.message || error?.toString()}</div>
               <div><${Listeners} /></div>
               <div><${Relays} /></div>
+              <div><${P2pAddress} /></div>
               <div><${Pinger} /></div>
             </main>`
         : html` <div style=${{ margin: '15px' }}>

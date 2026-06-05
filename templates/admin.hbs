@@ -6,9 +6,7 @@
         base: '{{base}}',
         hostName: '{{hostName}}',
       };
-      window.libp2p = {
-        p2pAddress: '{{p2pAddress}}',
-      };
+      window.libp2p = {{{p2pConfig}}};
       console.log(window.hsyncConfig);
       console.log(window.libp2p);
     </script>
