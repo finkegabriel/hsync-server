@@ -22,7 +22,9 @@ const debugError = createDebug('error');
 
 const node = await createLibp2p({
   addresses: {
-    listen: ['/ip4/0.0.0.0/tcp/8884/ws'],
+    listen: [
+      `/ip4/0.0.0.0/tcp/${process.env.PORT}/ws`
+    ],
     announce: [
       `/dns4/${defaultConfig.config.hsyncDomain}/tcp/443/wss`
     ]
