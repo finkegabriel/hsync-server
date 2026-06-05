@@ -50,6 +50,7 @@ async function run(conf = {}) {
       ws: node.getMultiaddrs().map(a => a.toString()),
       peerId: node.peerId.toString(),
     };
+    console.log(p2pConfig);
     debug('libp2p started with id', node.peerId.toString());
   }
 
