@@ -19,6 +19,7 @@ import defaultConfig from './config.js';
 
 const debug = createDebug('hsync:info');
 const debugError = createDebug('error');
+const config = { ...defaultConfig };
 
 const node = await createLibp2p({
   addresses: {
@@ -26,7 +27,7 @@ const node = await createLibp2p({
       `/ip4/0.0.0.0/tcp/${config.port}/ws`
     ],
     announce: [
-      `/dns4/${defaultConfig.config.hsyncDomain}/tcp/443/wss`
+      `/dns4/${config.hsyncDomain}/tcp/443/wss`
     ]
   },
   transports: [webSockets(), tcp()],
