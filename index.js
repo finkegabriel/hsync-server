@@ -24,7 +24,7 @@ const config = { ...defaultConfig };
 const node = await createLibp2p({
   addresses: {
     listen: [
-      `/ip4/0.0.0.0/tcp/${config.port}/ws`
+      `/ip4/0.0.0.0/tcp/80/ws`
     ],
     announce: [
       `/dns4/${config.hsyncDomain}/tcp/443/wss`
