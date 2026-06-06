@@ -26,7 +26,7 @@ const node = await createLibp2p({
       `/ip4/0.0.0.0/tcp/80/ws`
     ],
     announce: [
-      `/dns4/${process.env.HSYNC_BASE}/tcp/443/wss`
+      `/dns4/${process.env.HSYNC_HOSTNAME}/tcp/443/wss`
     ]
   },
   transports: [webSockets(), tcp()],
